@@ -1,29 +1,32 @@
+// db/config.js
+const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-module.exports = {
-  development: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
+const sequelize = new Sequelize(
+  process.env.DB_NAME || 'yugioh_db',
+  process.env.DB_USER || 'root',
+  process.env.DB_PASSWORD || '',
+  {
+    host: process.env.DB_HOST || 'localhost',
+    dialect: process.env.DB_DIALECT || 'mysql',
     port: process.env.DB_PORT || 3306,
-    dialect: 'mysql'
-  },
-  test: {
-    username: process.env.DB_TEST_USER,
-    password: process.env.DB_TEST_PASSWORD,
-    database: process.env.DB_TEST_NAME,
-    host: process.env.DB_TEST_HOST,
-    port: process.env.DB_TEST_PORT || 3306,
-    dialect: 'mysql'
-  },
-  production: {
-    username: process.env.DB_PROD_USER,
-    password: process.env.DB_PROD_PASSWORD,
-    database: process.env.DB_PROD_NAME,
-    host: process.env.DB_PROD_HOST,
-    port: process.env.DB_PROD_PORT || 3306,
-    dialect: 'mysql',
-    logging: false
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    define: {
+      timestamps: false, // Desativa createdAt e updatedAt
+      freezeTableName: true // Previne pluralização automática
+    }
   }
-};
+);
+
+// Testar conexão
+sequelize.authenticate()
+  .then(() => console.log('✅ Conexão com o banco estabelecida'))
+  .catch(error => console.error('❌ Erro de conexão:', error));
+
+module.exports = sequelize;

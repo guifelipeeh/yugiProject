@@ -1,4 +1,4 @@
-// models/Card.js
+// models/card.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../db/database');
 
@@ -37,12 +37,28 @@ const Card = sequelize.define('Card', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  rank: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  scale: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  linkval: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   race: {
     type: DataTypes.STRING(50),
     allowNull: false
   },
   attribute: {
     type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  archetype: {
+    type: DataTypes.STRING(100),
     allowNull: true
   }
 }, {

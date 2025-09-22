@@ -1,11 +1,11 @@
-// models/associations.js
-
+// models/association.js
+const sequelize = require('../db/config');
 const Card = require('./card');
-const CardSet = require('./CardSet');
-const CardImage = require('./CardImage');
-const CardPrice = require('./CardPrice');
+const CardSet = require('./cardset');
+const CardImage = require('./cardimage');
+const CardPrice = require('./cardprice');
 
-// Card has many CardSets
+// Definir associações
 Card.hasMany(CardSet, {
   foreignKey: 'card_id',
   as: 'card_sets'
@@ -16,7 +16,6 @@ CardSet.belongsTo(Card, {
   as: 'card'
 });
 
-// Card has many CardImages
 Card.hasMany(CardImage, {
   foreignKey: 'card_id',
   as: 'card_images'
@@ -27,7 +26,6 @@ CardImage.belongsTo(Card, {
   as: 'card'
 });
 
-// Card has one CardPrice
 Card.hasOne(CardPrice, {
   foreignKey: 'card_id',
   as: 'card_prices'
@@ -39,6 +37,7 @@ CardPrice.belongsTo(Card, {
 });
 
 module.exports = {
+  sequelize,
   Card,
   CardSet,
   CardImage,

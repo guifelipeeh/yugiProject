@@ -4,21 +4,18 @@ const app = express();
 const cors = require('cors');
 const animationRotas = require('./routes/animationRoutes');
 const sequelize = require('./db/database');
-
-const card = require('./models/card');
-const cardprice = require('./models/CardPrice');
-const cardset = require('./models/CardSet');
-const cardimage = require('./models/CardImage');
+const populateRoutes = require('./routes/populateRoutes')
+const { Card, CardSet, CardImage, CardPrice } = require('./models/association');
 
 async function sincronizarTabelas() {
-    await card.sync({ alter: true });
+    await Card.sync({ alter: true });
     console.log('✅ Tabela Card sincronizada com sucesso.');
 
- await cardprice.sync({ alter: true });
+ await CardPrice.sync({ alter: true });
     console.log('✅ Tabela Cardprice sincronizada com sucesso.');
- await cardset.sync({ alter: true });
+ await CardSet.sync({ alter: true });
     console.log('✅ Tabela cardset sincronizada com sucesso.');
- await cardimage.sync({ alter: true });
+ await CardImage.sync({ alter: true });
     console.log('✅ Tabela cardimage sincronizada com sucesso.');     
 
 }
@@ -37,7 +34,7 @@ async function inicializarDataBase() {
     }
 }
 
-
+app.use('/Banco',populateRoutes);
 app.use('/yugi',animationRotas);
 
 app.use(cors());
