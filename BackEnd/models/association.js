@@ -1,6 +1,6 @@
 // models/association.js
 const sequelize = require('../db/config');
-const Card = require('./card');
+const Card = require('./Card');
 const CardSet = require('./cardset');
 const CardImage = require('./cardimage');
 const CardPrice = require('./cardprice');

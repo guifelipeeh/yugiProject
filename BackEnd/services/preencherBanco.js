@@ -5,7 +5,7 @@ const { sequelize, Card, CardSet, CardImage, CardPrice } = require('../models/as
 class PreencherBanco {
   constructor() {
     this.baseUrl = 'https://db.ygoprodeck.com/api/v7/cardinfo.php';
-    this.batchSize = 100; // Aumentei para ser mais eficiente
+    this.batchSize = 50; // Reduzi para evitar timeouts
   }
 
   async syncDatabase() {
@@ -13,8 +13,8 @@ class PreencherBanco {
       await sequelize.authenticate();
       console.log('✅ Conexão com banco estabelecida');
       
-      // Sincronizar antes de popular
-      await sequelize.sync({ alter: true });
+      // Sincronizar forçando a recriação se necessário
+      await sequelize.sync({ force: false, alter: true });
       console.log('✅ Banco sincronizado');
       
       return true;
@@ -31,7 +31,7 @@ class PreencherBanco {
 
   // Parse seguro de preços
   parsePrice(priceString) {
-    if (!priceString || priceString === '0.00' || priceString === '') return 0.0;
+    if (!priceString || priceString === '0.00' || priceString === '' || priceString === 'N/A') return 0.0;
     const price = parseFloat(priceString);
     return isNaN(price) ? 0.0 : price;
   }
@@ -46,66 +46,52 @@ class PreencherBanco {
         throw new Error('Falha na sincronização do banco');
       }
 
-      let offset = 0;
+      console.log('📥 Buscando todos os cards de uma vez...');
+      
+      const response = await axios.get(this.baseUrl);
+      const cardsData = response.data.data;
+      
+      if (!cardsData || cardsData.length === 0) {
+        console.log('❌ Nenhum card encontrado na API');
+        return { success: false, totalProcessed: 0 };
+      }
+
+      console.log(`📥 Encontrados ${cardsData.length} cards no total`);
+      
       let totalProcessed = 0;
-      let hasMoreData = true;
+      let successCount = 0;
+      let errorCount = 0;
 
-      while (hasMoreData) {
-        console.log(`🔄 Buscando cards de ${offset + 1} a ${offset + this.batchSize}...`);
+      // Processar em lotes menores para evitar sobrecarga
+      for (let i = 0; i < cardsData.length; i += this.batchSize) {
+        const batch = cardsData.slice(i, i + this.batchSize);
+        console.log(`🔄 Processando lote ${i / this.batchSize + 1} de ${Math.ceil(cardsData.length / this.batchSize)}...`);
+
+        for (const cardData of batch) {
+          try {
+            await this.processCardData(cardData);
+            successCount++;
+            totalProcessed++;
+          } catch (cardError) {
+            errorCount++;
+            console.error(`❌ Erro ao processar card ${cardData.id || 'N/A'}:`, cardError.message);
+          }
+        }
+
+        console.log(`✅ Lote processado. Sucessos: ${successCount}, Erros: ${errorCount}`);
         
-        try {
-          const response = await axios.get(this.baseUrl, {
-            params: { 
-              num: this.batchSize, 
-              offset: offset,
-              misc: 'yes' // Para garantir todos os dados
-            }
-          });
-
-          const cardsData = response.data.data;
-          
-          if (!cardsData || cardsData.length === 0) {
-            hasMoreData = false;
-            console.log('📭 Nenhum card encontrado, finalizando...');
-            break;
-          }
-
-          console.log(`📥 Encontrados ${cardsData.length} cards nesta página`);
-          
-          // Processar cada card
-          for (const cardData of cardsData) {
-            try {
-              await this.processCardData(cardData);
-              totalProcessed++;
-            } catch (cardError) {
-              console.error(`❌ Erro ao processar card ${cardData.id || 'N/A'}:`, cardError.message);
-            }
-          }
-
-          // Verificar se há mais dados
-          if (cardsData.length < this.batchSize) {
-            hasMoreData = false;
-            console.log('🏁 Última página alcançada');
-          } else {
-            offset += this.batchSize;
-          }
-
-          // Pequena pausa para não sobrecarregar a API
-          await this.sleep(500);
-          
-          console.log(`✅ Página processada. Total: ${totalProcessed} cards`);
-
-        } catch (batchError) {
-          console.error(`❌ Erro no lote offset ${offset}:`, batchError.message);
-          // Continuar para o próximo lote mesmo com erro
-          offset += this.batchSize;
+        // Pausa entre lotes
+        if (i + this.batchSize < cardsData.length) {
+          await this.sleep(1000);
         }
       }
 
-      console.log(`🎉 População concluída com sucesso!`);
-      console.log(`📊 Total de cards processados: ${totalProcessed}`);
+      console.log(`🎉 População concluída!`);
+      console.log(`📊 Total processados: ${totalProcessed}`);
+      console.log(`✅ Sucessos: ${successCount}`);
+      console.log(`❌ Erros: ${errorCount}`);
       
-      return { success: true, totalProcessed };
+      return { success: true, totalProcessed, successCount, errorCount };
       
     } catch (error) {
       console.error('💥 Erro fatal na população do banco:', error);
@@ -127,6 +113,12 @@ class PreencherBanco {
   }
 
   async createCard(cardData, transaction) {
+    // DEBUG: Verificar estrutura dos dados
+    console.log(`🔍 Processando card ${cardData.id}: ${cardData.name}`);
+    console.log(`   - Card sets: ${cardData.card_sets ? cardData.card_sets.length : 0}`);
+    console.log(`   - Card images: ${cardData.card_images ? cardData.card_images.length : 0}`);
+    console.log(`   - Card prices: ${cardData.card_prices ? cardData.card_prices.length : 0}`);
+
     // Criar card principal
     const card = await Card.create({
       id: cardData.id,
@@ -145,58 +137,66 @@ class PreencherBanco {
       archetype: cardData.archetype || null
     }, { transaction });
 
-    // Criar card sets
+    // Criar card sets - CORRIGIDO
     if (cardData.card_sets && cardData.card_sets.length > 0) {
-      const cardSetsData = cardData.card_sets.map(set => ({
-        set_name: set.set_name || 'Unknown Set',
-        set_code: set.set_code || 'UNK-000',
-        set_rarity: set.set_rarity || 'Common',
-        set_rarity_code: set.set_rarity_code || '(C)',
-        set_price: this.parsePrice(set.set_price),
-        card_id: card.id
-      }));
-
-      await CardSet.bulkCreate(cardSetsData, { 
-        transaction,
-        ignoreDuplicates: true 
-      });
+      for (const set of cardData.card_sets) {
+        try {
+          await CardSet.create({
+            card_id: card.id,
+            set_name: set.set_name || 'Unknown Set',
+            set_code: set.set_code || 'UNK-000',
+            set_rarity: set.set_rarity || 'Common',
+            set_rarity_code: set.set_rarity_code || '',
+            set_price: this.parsePrice(set.set_price)
+          }, { transaction });
+        } catch (setError) {
+          console.error(`   ❌ Erro ao criar set para card ${card.id}:`, setError.message);
+        }
+      }
+      console.log(`   ✅ ${cardData.card_sets.length} card sets criados`);
     }
 
-    // Criar card images
+    // Criar card images - CORRIGIDO
     if (cardData.card_images && cardData.card_images.length > 0) {
-      const cardImagesData = cardData.card_images.map(image => ({
-        card_id: card.id,
-        image_url: image.image_url || '',
-        image_url_small: image.image_url_small || null,
-        image_url_cropped: image.image_url_cropped || null
-      }));
-
-      await CardImage.bulkCreate(cardImagesData, { 
-        transaction,
-        ignoreDuplicates: true 
-      });
+      for (const image of cardData.card_images) {
+        try {
+          await CardImage.create({
+            card_id: card.id,
+            image_url: image.image_url || '',
+            image_url_small: image.image_url_small || '',
+            image_url_cropped: image.image_url_cropped || null
+          }, { transaction });
+        } catch (imageError) {
+          console.error(`   ❌ Erro ao criar imagem para card ${card.id}:`, imageError.message);
+        }
+      }
+      console.log(`   ✅ ${cardData.card_images.length} card images criados`);
     }
 
-    // Criar card prices
+    // Criar card prices - CORRIGIDO
     if (cardData.card_prices && cardData.card_prices.length > 0) {
       const priceData = cardData.card_prices[0];
-      await CardPrice.create({
-        card_id: card.id,
-        cardmarket_price: this.parsePrice(priceData.cardmarket_price),
-        tcgplayer_price: this.parsePrice(priceData.tcgplayer_price),
-        ebay_price: this.parsePrice(priceData.ebay_price),
-        amazon_price: this.parsePrice(priceData.amazon_price),
-        coolstuffinc_price: this.parsePrice(priceData.coolstuffinc_price)
-      }, { 
-        transaction,
-        ignoreDuplicates: true 
-      });
+      try {
+        await CardPrice.create({
+          card_id: card.id,
+          cardmarket_price: this.parsePrice(priceData.cardmarket_price),
+          tcgplayer_price: this.parsePrice(priceData.tcgplayer_price),
+          ebay_price: this.parsePrice(priceData.ebay_price),
+          amazon_price: this.parsePrice(priceData.amazon_price),
+          coolstuffinc_price: this.parsePrice(priceData.coolstuffinc_price)
+        }, { transaction });
+        console.log(`   ✅ Card price criado`);
+      } catch (priceError) {
+        console.error(`   ❌ Erro ao criar price para card ${card.id}:`, priceError.message);
+      }
     }
 
     console.log(`✅ Card criado: ${card.id} - ${card.name}`);
   }
 
   async updateCard(existingCard, cardData, transaction) {
+    console.log(`🔄 Atualizando card existente: ${existingCard.id} - ${existingCard.name}`);
+
     // Atualizar card principal
     await existingCard.update({
       name: cardData.name,
@@ -219,29 +219,29 @@ class PreencherBanco {
     await CardImage.destroy({ where: { card_id: existingCard.id }, transaction });
     await CardPrice.destroy({ where: { card_id: existingCard.id }, transaction });
 
-    // Recriar dados relacionados
+    // Recriar dados relacionados (usando a mesma lógica do create)
     if (cardData.card_sets && cardData.card_sets.length > 0) {
-      const cardSetsData = cardData.card_sets.map(set => ({
-        set_name: set.set_name || 'Unknown Set',
-        set_code: set.set_code || 'UNK-000',
-        set_rarity: set.set_rarity || 'Common',
-        set_rarity_code: set.set_rarity_code || '(C)',
-        set_price: this.parsePrice(set.set_price),
-        card_id: existingCard.id
-      }));
-
-      await CardSet.bulkCreate(cardSetsData, { transaction });
+      for (const set of cardData.card_sets) {
+        await CardSet.create({
+          card_id: existingCard.id,
+          set_name: set.set_name || 'Unknown Set',
+          set_code: set.set_code || 'UNK-000',
+          set_rarity: set.set_rarity || 'Common',
+          set_rarity_code: set.set_rarity_code || '',
+          set_price: this.parsePrice(set.set_price)
+        }, { transaction });
+      }
     }
 
     if (cardData.card_images && cardData.card_images.length > 0) {
-      const cardImagesData = cardData.card_images.map(image => ({
-        card_id: existingCard.id,
-        image_url: image.image_url || '',
-        image_url_small: image.image_url_small || null,
-        image_url_cropped: image.image_url_cropped || null
-      }));
-
-      await CardImage.bulkCreate(cardImagesData, { transaction });
+      for (const image of cardData.card_images) {
+        await CardImage.create({
+          card_id: existingCard.id,
+          image_url: image.image_url || '',
+          image_url_small: image.image_url_small || '',
+          image_url_cropped: image.image_url_cropped || null
+        }, { transaction });
+      }
     }
 
     if (cardData.card_prices && cardData.card_prices.length > 0) {
@@ -256,29 +256,45 @@ class PreencherBanco {
       }, { transaction });
     }
 
-    console.log(`🔄 Card atualizado: ${existingCard.id} - ${existingCard.name}`);
+    console.log(`✅ Card atualizado: ${existingCard.id} - ${existingCard.name}`);
   }
 
-  // Método para popular apenas um card específico (útil para testes)
-  async populateSingleCard(cardId) {
+  // Método para verificar o que foi inserido
+  async checkDatabase() {
     try {
-      console.log(`🔄 Buscando card ${cardId}...`);
-      
-      const response = await axios.get(this.baseUrl, {
-        params: { id: cardId }
-      });
+      const cardCount = await Card.count();
+      const setCount = await CardSet.count();
+      const imageCount = await CardImage.count();
+      const priceCount = await CardPrice.count();
 
-      if (response.data.data && response.data.data.length > 0) {
-        await this.processCardData(response.data.data[0]);
-        console.log(`✅ Card ${cardId} processado com sucesso!`);
-        return true;
-      } else {
-        console.log(`❌ Card ${cardId} não encontrado`);
-        return false;
+      console.log('\n📊 ESTATÍSTICAS DO BANCO:');
+      console.log(`   Cards: ${cardCount}`);
+      console.log(`   Card Sets: ${setCount}`);
+      console.log(`   Card Images: ${imageCount}`);
+      console.log(`   Card Prices: ${priceCount}`);
+
+      // Mostrar alguns exemplos
+      if (cardCount > 0) {
+        const sampleCard = await Card.findOne({
+          include: [
+            { model: CardSet, as: 'card_sets' },
+            { model: CardImage, as: 'card_images' },
+            { model: CardPrice, as: 'card_prices' }
+          ]
+        });
+
+        if (sampleCard) {
+          console.log('\n🔍 CARD EXEMPLO:');
+          console.log(`   ID: ${sampleCard.id}`);
+          console.log(`   Nome: ${sampleCard.name}`);
+          console.log(`   Sets: ${sampleCard.card_sets ? sampleCard.card_sets.length : 0}`);
+          console.log(`   Images: ${sampleCard.card_images ? sampleCard.card_images.length : 0}`);
+          console.log(`   Prices: ${sampleCard.card_prices ? 'Sim' : 'Não'}`);
+        }
       }
+
     } catch (error) {
-      console.error(`❌ Erro ao buscar card ${cardId}:`, error.message);
-      return false;
+      console.error('❌ Erro ao verificar banco:', error);
     }
   }
 }

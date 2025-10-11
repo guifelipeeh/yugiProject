@@ -2,10 +2,14 @@ require ('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const card = require('./routes/cards');
 const animationRotas = require('./routes/animationRoutes');
 const sequelize = require('./db/database');
 const populateRoutes = require('./routes/populateRoutes')
 const { Card, CardSet, CardImage, CardPrice } = require('./models/association');
+
+app.use(express.json());
+app.use(cors());
 
 async function sincronizarTabelas() {
     await Card.sync({ alter: true });
@@ -33,12 +37,12 @@ async function inicializarDataBase() {
         console.error('Erro ao conectar ao banco de dados:', error);
     }
 }
-
+app.use('/cards',card);   
 app.use('/Banco',populateRoutes);
 app.use('/yugi',animationRotas);
 
-app.use(cors());
-app.use(express.json());
+
+
 
 
 

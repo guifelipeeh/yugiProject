@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Deck</title>
+</head>
+<body>
+    
+    <div>
+
+        <form>
+            <input id="cardsName" type="text" name="cardName" placeholder="Enter card name">
+            <button type="submit" onclick="BuscarCardApi()">Search</button>
+        </form>
+
+    </div>
+
+    <script>
+            async function BuscarCardApi(){
+                event.preventDefault();
+                const cardsName = document.getElementById('cardsName').value;
+
+                try{
+                      const response = await fetch(`http://localhost:3000/cards/name/${cardsName}`);
+
+                      if(!response.ok){
+                       alert('Card not found');
+                       return;
+                      }
+                      const data = await response.json();
+                      console.log(data);
+
+                }
+                catch(error){
+                    console.error('Error fetching card data:', error);
+                }
+              
+               
+
+            }
+
+    </script>
+
+</body>
+</html>
