@@ -42,7 +42,7 @@ class PreencherBanco {
       
       // Sincronizar primeiro
       const synced = await this.syncDatabase();
-      if (!synced) {
+      if(!synced) {
         throw new Error('Falha na sincronização do banco');
       }
 

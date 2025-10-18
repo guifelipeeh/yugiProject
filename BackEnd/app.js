@@ -2,11 +2,13 @@ require ('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const deckRoutes = require('./routes/deckRoutes');
+const userRoutes = require('./routes/userRoutes');
 const card = require('./routes/cards');
 const animationRotas = require('./routes/animationRoutes');
 const sequelize = require('./db/database');
 const populateRoutes = require('./routes/populateRoutes')
-const { Card, CardSet, CardImage, CardPrice } = require('./models/association');
+const { Card, CardSet, CardImage, CardPrice, User, Deck, DeckCard } = require('./models/association');
 
 app.use(express.json());
 app.use(cors());
@@ -21,7 +23,12 @@ async function sincronizarTabelas() {
     console.log('✅ Tabela cardset sincronizada com sucesso.');
  await CardImage.sync({ alter: true });
     console.log('✅ Tabela cardimage sincronizada com sucesso.');     
-
+await User.sync({ alter: true });
+    console.log('✅ Tabela User sincronizada com sucesso.');
+ await Deck.sync({ alter: true });
+    console.log('✅ Tabela Deck sincronizada com sucesso.');
+ await DeckCard.sync({ alter: true });
+    console.log('✅ Tabela DeckCard sincronizada com sucesso.');
 }
 
 
@@ -40,6 +47,8 @@ async function inicializarDataBase() {
 app.use('/cards',card);   
 app.use('/Banco',populateRoutes);
 app.use('/yugi',animationRotas);
+app.use('/users', userRoutes);
+app.use('/decks', deckRoutes);
 
 
 

@@ -1,46 +1,614 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Build Deck</title>
+    <link rel="icon" type="image/png" href="../assets/image.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
+        rel="stylesheet">
+    <style>
+        .ibm-plex-mono-semibold {
+            font-family: "IBM Plex Mono", monospace;
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        :root {
+            --primary-color: #263179;
+            --primary-dark: #000000;
+            --light-bg: rgba(105, 101, 101, 0.9);
+            --dark-text: #333;
+            --light-text: #fff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--light-text);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            color: var(--light-text);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .search-form {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--light-bg);
+            font-size: 1rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .search-form input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
+        }
+
+        .search-form button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: var(--light-text);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .search-form button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .list-cards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .card {
+            position: relative;
+            margin: 5px;
+            cursor: pointer;
+            transition: var(--transition);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card img {
+            width: 210px;
+            height: 300px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background-color: var(--primary-color);
+            color: var(--light-text);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--light-text);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .close-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .modal-body {
+                flex-direction: row;
+                gap: 20px;
+            }
+        }
+
+        .modal-image {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .modal-image img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .detail-item {
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .detail-item strong {
+            display: inline-block;
+            width: 120px;
+            color: var(--primary-dark);
+        }
+
+        .card-type {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+
+        .card-description {
+            line-height: 1.6;
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 0.9rem;
+            position: relative;
+            overflow:auto;
+            
+        }
+
+        /* Typewriter effect */
+        .typing {
+            position: relative;
+            overflow: hidden;
+            white-space: pre-wrap;
+        }
+
+        .typing::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background-color: #263179;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .search-form {
+                flex-direction: column;
+            }
+
+            .card img {
+                width: 150px;
+                height: 210px;
+            }
+
+            .modal-content {
+                width: 95%;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    
-    <div>
+    <div class="header">
+        <h1 style="color:darkkhaki">Library of Yu-gi-oh !!!</h1>
+        <p>Search for cards and add them to your collection</p>
+    </div>
 
-        <form>
-            <input id="cardsName" type="text" name="cardName" placeholder="Enter card name">
-            <button type="submit" onclick="BuscarCardApi()">Search</button>
-        </form>
+    <form class="search-form">
+        <input id="cardsName" type="text" name="cardName" placeholder="Enter card name">
+        <button type="submit">Search</button>
+    </form>
 
+    <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>Searching for cards...</p>
+    </div>
+
+    <div class="container">
+        <div class="list-cards">
+            <div class="empty-state">
+                <h3>No cards found</h3>
+                <p>Search for cards using the form above</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for card details -->
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalCardName">Card Name</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-image">
+                    <img id="modalCardImage" src="" alt="Card Image">
+                </div>
+                <div class="modal-details">
+                    <div class="detail-item">
+                        <strong>Type:</strong>
+                        <span id="modalCardType" class="card-type"></span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Attribute:</strong>
+                        <span id="modalCardAttribute"></span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Level/Rank:</strong>
+                        <span id="modalCardLevel"></span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Race:</strong>
+                        <span id="modalCardRace"></span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>ATK/DEF:</strong>
+                        <span id="modalCardAtkDef"></span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Description:</strong>
+                    </div>
+                    <div class="card-description" id="modalCardDescription">
+                        Card description will appear here.
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-            async function BuscarCardApi(){
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchForm = document.querySelector('.search-form');
+            const cardsNameInput = document.getElementById('cardsName');
+            const listCards = document.querySelector('.list-cards');
+            const loading = document.querySelector('.loading');
+            const emptyState = document.querySelector('.empty-state');
+            const modal = document.getElementById('cardModal');
+            const closeBtn = document.querySelector('.close-btn');
+            const modalCardName = document.getElementById('modalCardName');
+            const modalCardImage = document.getElementById('modalCardImage');
+            const modalCardType = document.getElementById('modalCardType');
+            const modalCardAttribute = document.getElementById('modalCardAttribute');
+            const modalCardLevel = document.getElementById('modalCardLevel');
+            const modalCardRace = document.getElementById('modalCardRace');
+            const modalCardAtkDef = document.getElementById('modalCardAtkDef');
+            const modalCardDescription = document.getElementById('modalCardDescription');
+
+            // Handle form submission
+            searchForm.addEventListener('submit', function (event) {
                 event.preventDefault();
-                const cardsName = document.getElementById('cardsName').value;
+                BuscarCardApi();
+            });
 
-                try{
-                      const response = await fetch(`http://localhost:3000/cards/name/${cardsName}`);
+            // Close modal when clicking the close button
+            closeBtn.addEventListener('click', function () {
+                modal.style.display = 'none';
+            });
 
-                      if(!response.ok){
-                       alert('Card not found');
-                       return;
-                      }
-                      const data = await response.json();
-                      console.log(data);
-
+            // Close modal when clicking outside the modal content
+            window.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
                 }
-                catch(error){
+            });
+
+            async function BuscarCardApi() {
+                const cardsName = cardsNameInput.value.trim();
+
+                if (!cardsName) {
+                    alert('Please enter a card name');
+                    return;
+                }
+
+                // Show loading state
+                loading.style.display = 'block';
+                emptyState.style.display = 'none';
+                listCards.innerHTML = '';
+
+                try {
+                    const response = await fetch(`http://localhost:3000/cards/name/${cardsName}`);
+
+                    if (!response.ok) {
+                        throw new Error('Card not found');
+                    }
+
+                    const data = await response.json();
+
+                    // Hide loading state
+                    loading.style.display = 'none';
+
+                    if (data.length === 0) {
+                        emptyState.style.display = 'block';
+                        emptyState.innerHTML = `
+                            <h3>No cards found</h3>
+                            <p>No cards found for "${cardsName}"</p>
+                        `;
+                        return;
+                    }
+
+                    // Clear previous results
+                    listCards.innerHTML = '';
+
+                    // Create card elements
+                    data.forEach(card => {
+                        const cardElement = document.createElement('div');
+                        cardElement.classList.add('card');
+
+                        const imageCard = document.createElement('img');
+                        imageCard.src = card.card_images[0].image_url;
+                        imageCard.alt = card.name;
+
+                        cardElement.appendChild(imageCard);
+                        listCards.appendChild(cardElement);
+
+                        // Add click event to show modal with card details
+                        cardElement.addEventListener('click', function () {
+                            showCardModal(card);
+                        });
+                    });
+
+                } catch (error) {
                     console.error('Error fetching card data:', error);
+                    loading.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = `
+                        <h3>Error</h3>
+                        <p>${error.message}</p>
+                    `;
                 }
-              
-               
-
             }
 
-    </script>
+            function showCardModal(card) {
+                // Set modal content
+                modalCardName.textContent = card.name;
+                modalCardImage.src = card.card_images[0].image_url;
+                modalCardType.textContent = card.type;
+                
+                // Set additional details if available
+                modalCardAttribute.textContent = card.attribute || 'N/A';
+                modalCardLevel.textContent = card.level || card.rank || 'N/A';
+                modalCardRace.textContent = card.race || 'N/A';
 
+                // Format ATK/DEF
+                let atkDef = '';
+                if (card.atk !== undefined) atkDef += `ATK: ${card.atk}`;
+                if (card.def !== undefined) atkDef += ` / DEF: ${card.def}`;
+                modalCardAtkDef.textContent = atkDef || 'N/A';
+
+                // Reset animations for all detail items
+                const detailItems = document.querySelectorAll('.detail-item');
+                detailItems.forEach(item => {
+                    item.style.animation = 'none';
+                    void item.offsetWidth; // Trigger reflow
+                    item.style.animation = null;
+                });
+
+                // Show the modal
+                modal.style.display = 'flex';
+
+                // Animate the description with typewriter effect
+                typeWriterEffect(card.desc, modalCardDescription);
+            }
+
+            function typeWriterEffect(text, element) {
+                element.textContent = '';
+                element.classList.add('typing');
+                
+                let i = 0;
+                const speed = 20; // typing speed in milliseconds
+                
+                function typeWriter() {
+                    if (i < text.length) {
+                        element.textContent += text.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, speed);
+                    } else {
+                        element.classList.remove('typing');
+                    }
+                }
+                
+                // Start the typewriter effect after a short delay
+                setTimeout(typeWriter, 500);
+            }
+        });
+    </script>
 </body>
+
 </html>
