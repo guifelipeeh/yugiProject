@@ -23,7 +23,8 @@ const User = sequelize.define('User', {
     unique: true,
     validate: {
       isEmail: true
-    }
+    } 
+   
   },
   password: {
     type: DataTypes.STRING(255),
@@ -31,7 +32,8 @@ const User = sequelize.define('User', {
   },
   role: {
     type: DataTypes.ENUM('user', 'admin'),
-    defaultValue: 'user'
+    defaultValue: 'user',
+    allowNull: false
   },
   profile_picture: {
     type: DataTypes.STRING(500),

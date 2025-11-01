@@ -8,12 +8,14 @@ const card = require('./routes/cards');
 const animationRotas = require('./routes/animationRoutes');
 const sequelize = require('./db/database');
 const populateRoutes = require('./routes/populateRoutes')
-const { Card, CardSet, CardImage, CardPrice, User, Deck, DeckCard } = require('./models/association');
-
+const { Card, CardSet, CardImage, CardPrice, User, Deck, DeckCard,Sessao } = require('./models/association');
+const sessao = require('./models/Sessao');
 app.use(express.json());
 app.use(cors());
 
 async function sincronizarTabelas() {
+   
+
     await Card.sync({ alter: true });
     console.log('✅ Tabela Card sincronizada com sucesso.');
 
@@ -29,6 +31,8 @@ await User.sync({ alter: true });
     console.log('✅ Tabela Deck sincronizada com sucesso.');
  await DeckCard.sync({ alter: true });
     console.log('✅ Tabela DeckCard sincronizada com sucesso.');
+     await sessao.sync({ alter: false });
+    console.log('✅ Tabela Sessao sincronizada com sucesso.');
 }
 
 
@@ -44,10 +48,11 @@ async function inicializarDataBase() {
         console.error('Erro ao conectar ao banco de dados:', error);
     }
 }
+app.use('/users', userRoutes);
 app.use('/cards',card);   
 app.use('/Banco',populateRoutes);
 app.use('/yugi',animationRotas);
-app.use('/users', userRoutes);
+
 app.use('/decks', deckRoutes);
 
 

@@ -6,6 +6,7 @@ const CardPrice = require('./CardPrice');
 const User = require('./user');
 const Deck = require('./deck');
 const DeckCard = require('./DeckCard');
+const Sessao = require('./Sessao');
 const sequelize = require('../db/database');
 
 
@@ -100,6 +101,11 @@ Card.hasMany(Deck, {
   foreignKey: 'featured_card_id',
   as: 'featured_in_decks'
 });
+Sessao.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 
 // Exporta o sequelize e as associações
 
@@ -113,5 +119,6 @@ module.exports = {
   CardPrice,
   User,
   Deck,
-  DeckCard
+  DeckCard,
+  Sessao
 };
