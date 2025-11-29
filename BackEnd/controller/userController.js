@@ -30,6 +30,9 @@ async function login(req, res) {
           return res.status(500).json({ message: 'Erro ao logar usuário', error: err.message });
         }
         if (isMatch) {
+
+          await Sessao.destroy({ where: { userId: user.id } });
+          
           const token = await authService.generateToken(user);
           
           // Criar uma nova sessão

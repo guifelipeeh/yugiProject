@@ -18,6 +18,8 @@ async function registerUser(username, email, password, role) {
   }
 }
 async function loginUser(email, password) {
+
+  
   try {
     const user = await User.findOne({ where: { email } });
     if (!user) {

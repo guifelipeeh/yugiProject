@@ -42,7 +42,7 @@ router.get('/:id', (req, res) => {
     });
 });
 
-router.post('/', (req, res) => {
+router.post('/save', (req, res) => {
     res.json({ 
         success: true,
         message: 'Deck criado com sucesso!',
