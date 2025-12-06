@@ -3,7 +3,7 @@ const deckService = require('../services/deckService');
 const deckController = {
   async createDeck(req, res) {
     try {
-      const deck = await deckService.createDeck(req.body, req.userId);
+      const deck = await deckService.saveDeck(req.body, req.userId);
       
       res.status(201).json({
         success: true,
@@ -21,7 +21,8 @@ const deckController = {
 
   async getUserDecks(req, res) {
     try {
-      const result = await deckService.getUserDecks(req.userId, req.query);
+      console.log("entrou na controller de decks",req);
+      const result = await deckService.getUserDecks(req.id);
       
       res.json({
         success: true,

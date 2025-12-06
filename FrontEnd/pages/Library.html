@@ -1004,7 +1004,7 @@
             }
             
             // Update UI for logged in user
-            function updateUIForLoggedInUser() {
+            async function updateUIForLoggedInUser() {
                 currentUser = JSON.parse(localStorage.getItem('currentUser'));
                 userInfo.style.display = 'flex';
                 authButtons.style.display = 'none';
@@ -1015,6 +1015,20 @@
                     window.location.href = 'profile.html';
                 })
                 // Load user's decks
+
+                const decks = await fetch('http://localhost:3000/decks/my-decks',
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId: currentUser.id })
+
+
+                })
+                .then(response => response.json());
+
+
                 loadUserDecks();
             }
             
@@ -1262,7 +1276,8 @@
                         // Fechar modal e resetar formulário
                         loginModal.style.display = 'none';
                         loginForm.reset();
-                        updateUIForLoggedInUser();
+                          updateUIForLoggedInUser();
+                      
                         
                         alert('Login realizado com sucesso!');
                     } else {

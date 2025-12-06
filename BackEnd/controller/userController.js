@@ -2,6 +2,7 @@
 const bcrypt = require('bcryptjs');
 const authService = require('../services/authService');
 const Sessao  = require('../models/Sessao');
+const deckController = require('./deckController');
 
 
 async function register(req, res) {
@@ -41,6 +42,7 @@ async function login(req, res) {
             token: token,
             loginTime: new Date()
           });
+
 
           res.status(200).json({ message: 'Usuário logado com sucesso', user, token });
         } else {

@@ -18,11 +18,23 @@ async function getCardsByName(req, res) {
         res.status(500).json({ error: 'Erro ao buscar cards por nome' });
     }
 }
+
+async function getSearchComplete(req, res) {
+    try {
+        const cards = await cardService.getSearchComplete();
+        res.json(cards);
+        return cards;
+    } catch (error) {
+        console.error('Erro ao buscar cards:', error);
+        res.status(500).json({ error: 'Erro ao buscar cards' });
+    }
+}
   
 
 
 module.exports = {
-    getCardsByName
+    getCardsByName,
+    getSearchComplete
 };
 
 

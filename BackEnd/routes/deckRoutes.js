@@ -1,6 +1,7 @@
 // routes/deckRoutes.js - VERSÃO 100% FUNCIONAL
 const express = require('express');
 const router = express.Router();
+const deckController = require('../controller/deckController');
 
 // ✅ ROTAS CORRETAS - com paths explícitos
 router.get('/', (req, res) => {
@@ -22,13 +23,8 @@ router.get('/public', (req, res) => {
     });
 });
 
-router.get('/my-decks', (req, res) => {
-    res.json({ 
-        success: true,
-        message: 'Meus decks',
-        data: []
-    });
-});
+router.get('/my-decks',deckController.getUserDecks);
+   
 
 router.get('/:id', (req, res) => {
     res.json({ 
@@ -42,16 +38,8 @@ router.get('/:id', (req, res) => {
     });
 });
 
-router.post('/save', (req, res) => {
-    res.json({ 
-        success: true,
-        message: 'Deck criado com sucesso!',
-        data: {
-            id: Math.random().toString(36).substr(2, 9),
-            ...req.body
-        }
-    });
-});
+router.post('/save',deckController.createDeck)
+
 
 router.put('/:id', (req, res) => {
     res.json({ 

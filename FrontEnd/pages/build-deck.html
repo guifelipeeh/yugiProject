@@ -1172,7 +1172,29 @@
                 document.getElementById('deckName').textContent = deckName;
                 
                 saveModal.style.display = 'none';
-                alert('Deck salvo com sucesso!');
+               
+                savefetch();
+            }
+            async function savefetch() {
+                try {
+                    const response = await fetch('http://localhost:3000/decks/save', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(currentDeck)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Erro ao salvar o deck no servidor');
+                    }
+
+                    const result = await response.json();
+                    alert('Deck salvo com sucesso no servidor!');
+                } catch (error) {
+                    console.error('Erro ao salvar o deck:', error);
+                    alert('Erro ao salvar o deck no servidor');
+                }
             }
 
             // Event listeners
@@ -1192,7 +1214,6 @@
                     saveModal.style.display = 'none';
                 }
             });
-
             // Auto-search for demo
             setTimeout(() => {
                 if (cardSearch.value === '') {
