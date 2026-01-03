@@ -408,7 +408,7 @@ class CardService {
       }
     };
   }
-  async saveDeckCard(deckCard,quantity,deckType) {
+  async saveDeckCard(deckCard,quantity,deckType,deckId) {
     try{
       const newDeckCard = await DeckCard.create({
         deck_id: deckCard.deck_id,
@@ -422,7 +422,21 @@ class CardService {
       throw new Error(`Erro ao salvar carta no deck: ${error.message}`);
     }
   }
-  
+  async createDeck(deckData,userId) {
+    try{
+      const newDeck = await Deck.create({
+        user_id: userId,
+        name: deckData.name,
+        created_at: new Date(),
+        description: deckData.description || '',
+        
+      });
+      return newDeck;
+    }catch(error){
+      throw new Error(`Erro ao criar deck: ${error.message}`);
+    }
+  }
+
 
     
 

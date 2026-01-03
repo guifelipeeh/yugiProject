@@ -6,10 +6,29 @@ const deckController = {
   async createDeck(req, res) {
     try {
 
+      const auxToken = req.headers['authorization'];
+      console.log("auxToken:",auxToken);
+      const token = auxToken.split(' ')[1];
+
+
+      console.log("token:",token.trim());
+      
+      const sessao =  await sessaoService.obterSessaoPorToken(token.trim());
+      if (!sessao) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token de acesso inválido'
+        });
+      }
+
+      const newDeck = await deckService.createDeck(req.body, sessao.userId); 
+      
+
+
       const deckCard = req.body.deck_cards;
       for(let i=0;i<deckCard.length;i++){
 
-        await deckService.saveDeckCard(deckCard[i],deckCard[i].quantity,deckCard[i].deckType);
+        await deckService.saveDeckCard(deckCard[i],deckCard[i].quantity,deckCard[i].deckType,newDeck.id);
         console.log(deckCard[i]);
       }
 

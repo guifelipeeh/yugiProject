@@ -36,9 +36,11 @@ async function encerrarSessaoPorUserId(userId) {
   }
 }
 
+
 async function obterSessaoPorToken(token) {
   try {
-    const sessao = await Sessao.findOne({ where: { token }, include: [{ model: User, as: 'user' }] });
+    console.log("servico sessao token:",token);
+    const sessao = await Sessao.findOne({ where: { token } });
     return sessao;
   } catch (error) {
     console.error('Erro ao obter sessão por token:', error);
