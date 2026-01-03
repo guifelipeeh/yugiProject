@@ -1,5 +1,7 @@
 
-const [Sessao,User] = require('../models/association');
+const { Sessao } = require('../models/Sessao');
+const User = require('../models/user');
+
 
 
 
@@ -42,6 +44,7 @@ async function obterSessaoPorToken(token) {
     console.error('Erro ao obter sessão por token:', error);
     throw error;
   }
+
 }
 module.exports = {
   criarSessao,

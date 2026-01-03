@@ -69,49 +69,21 @@ class CardService {
     }
   }
 
-  async saveDeck(deckData) {
-    try {
-      const { name, description, userId, mainDeck, extraDeck, sideDeck } = deckData;
+  async saveDeck(deckData,userId) {
+    
+    try{
+      const { name, description, cards, user_id } = deckData;
       
-      // Criar o deck
-      const newDeck = await Deck.create({
-        name,
-        description: description || '',
-        user_id: userId,
-        created_at: new Date(),
-        updated_at: new Date()
-      });
 
-      // Função para adicionar cartas ao deck
-      const addCardsToDeck = async (cards, deckType) => {
-        if (!cards || cards.length === 0) return;
-        
-        const deckCardsData = cards.map(card => ({
-          deck_id: newDeck.id,
-          card_id: card.id,
-          deck_type: deckType,
-          quantity: card.quantity || 1,
-          created_at: new Date()
-        }));
 
-        await DeckCard.bulkCreate(deckCardsData);
-      };
-
-      // Adicionar cartas de cada seção
-      await addCardsToDeck(mainDeck, 'main');
-      await addCardsToDeck(extraDeck, 'extra');
-      await addCardsToDeck(sideDeck, 'side');
-
-      // Recuperar o deck completo com as cartas
-      const completeDeck = await this.getDeckById(newDeck.id);
-      
-      return completeDeck;
-
-    } catch (error) {
+      return deck;
+    } catch(error){
       throw new Error(`Erro ao salvar deck: ${error.message}`);
     }
   }
 
+    
+     
   async updateDeck(deckId, deckData) {
     try {
       const { name, description, mainDeck, extraDeck, sideDeck } = deckData;
@@ -436,6 +408,24 @@ class CardService {
       }
     };
   }
+  async saveDeckCard(deckCard,quantity,deckType) {
+    try{
+      const newDeckCard = await DeckCard.create({
+        deck_id: deckCard.deck_id,
+        card_id: deckCard.card_id,
+        quantity: quantity,
+        deck_type: deckType,
+        created_at: new Date()
+      });
+      return newDeckCard;
+    }catch(error){
+      throw new Error(`Erro ao salvar carta no deck: ${error.message}`);
+    }
+  }
+  
+
+    
+
 }
 
 module.exports = new CardService();

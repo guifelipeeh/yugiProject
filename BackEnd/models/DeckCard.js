@@ -21,6 +21,7 @@ const DeckCard = sequelize.define('DeckCard', {
     type: DataTypes.ENUM('main', 'side', 'extra'),
     defaultValue: 'main'
   },
+
   notes: {
     type: DataTypes.TEXT,
     allowNull: true

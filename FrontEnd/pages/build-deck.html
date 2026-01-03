@@ -535,6 +535,22 @@
         .ban-semi-limited {
             background: #2196f3;
         }
+        
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid var(--accent-gold);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -671,10 +687,20 @@
         <div class="modal-content">
             <h2>Salvar Deck</h2>
             <input type="text" id="deckNameInput" placeholder="Nome do Deck" style="width: 100%; padding: 10px; margin: 10px 0; border: none; border-radius: 5px;">
+            <input type="text" id="deckDescriptionInput" placeholder="Descrição do Deck (opcional)" style="width: 100%; padding: 10px; margin: 10px 0; border: none; border-radius: 5px;">
             <div class="modal-actions">
                 <button class="btn btn-primary" id="confirmSave">Salvar</button>
                 <button class="btn btn-secondary" id="cancelSave">Cancelar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <h2>Salvando Deck...</h2>
+            <div class="spinner"></div>
+            <p>Aguarde enquanto salvamos seu deck.</p>
         </div>
     </div>
 
@@ -691,7 +717,9 @@
             const sideDeckSection = document.getElementById('sideDeckSection');
             
             const saveModal = document.getElementById('saveModal');
+            const loadingModal = document.getElementById('loadingModal');
             const deckNameInput = document.getElementById('deckNameInput');
+            const deckDescriptionInput = document.getElementById('deckDescriptionInput');
             const confirmSave = document.getElementById('confirmSave');
             const cancelSave = document.getElementById('cancelSave');
             const saveDeckBtn = document.getElementById('saveDeck');
@@ -708,10 +736,11 @@
             const addToMainBtn = document.getElementById('addToMain');
             const addToExtraBtn = document.getElementById('addToExtra');
             const addToSideBtn = document.getElementById('addToSide');
-
+            
             // State
             let currentDeck = {
                 name: 'Novo Deck',
+                description: '',
                 main: [],
                 extra: [],
                 side: []
@@ -735,6 +764,16 @@
             // Initialize
             initializeDeck();
             setupDragAndDrop();
+            checkUserAuth();
+
+            // Check if user is authenticated
+            function checkUserAuth() {
+                const user = JSON.parse(localStorage.getItem('currentUser'));
+                if (!user) {
+                    alert('Você precisa estar logado para usar o construtor de decks!');
+                    window.location.href = 'login.html';
+                }
+            }
 
             // Initialize from URL parameters
             function initializeDeck() {
@@ -746,6 +785,7 @@
                 } else {
                     currentDeck = {
                         name: 'Novo Deck',
+                        description: '',
                         main: [],
                         extra: [],
                         side: []
@@ -768,6 +808,7 @@
                 if (deck) {
                     currentDeck = {
                         name: deck.name || 'Deck Sem Nome',
+                        description: deck.description || '',
                         id: deck.id,
                         main: Array.isArray(deck.main) ? deck.main : [],
                         extra: Array.isArray(deck.extra) ? deck.extra : [],
@@ -1138,6 +1179,7 @@
 
                 saveModal.style.display = 'flex';
                 deckNameInput.value = currentDeck.name;
+                deckDescriptionInput.value = currentDeck.description;
                 deckNameInput.focus();
             }
 
@@ -1149,6 +1191,7 @@
                 }
 
                 currentDeck.name = deckName;
+                currentDeck.description = deckDescriptionInput.value.trim();
                 
                 const user = JSON.parse(localStorage.getItem('currentUser'));
                 if (!user) {
@@ -1157,6 +1200,19 @@
                     return;
                 }
 
+                // Verificar se há cartas no deck
+                if (currentDeck.main.length === 0 && currentDeck.extra.length === 0 && currentDeck.side.length === 0) {
+                    alert('O deck está vazio! Adicione cartas antes de salvar.');
+                    return;
+                }
+
+                // Validar tamanho mínimo do deck principal
+                if (currentDeck.main.length < 40) {
+                    alert('O deck principal precisa ter pelo menos 40 cartas!');
+                    return;
+                }
+
+                // Save to localStorage first
                 const userDecks = JSON.parse(localStorage.getItem(`decks_${user.id}`)) || [];
                 
                 // Update existing deck or create new
@@ -1168,32 +1224,153 @@
                     userDecks.push(currentDeck);
                 }
 
-                localStorage.setItem(`decks_${user.id}`, JSON.stringify(userDecks));
-                document.getElementById('deckName').textContent = deckName;
-                
-                saveModal.style.display = 'none';
-               
-                savefetch();
-            }
-            async function savefetch() {
                 try {
+                    localStorage.setItem(`decks_${user.id}`, JSON.stringify(userDecks));
+                    document.getElementById('deckName').textContent = deckName;
+                    
+                    // Now save to server
+                    saveModal.style.display = 'none';
+                    saveToServer();
+                } catch (storageError) {
+                    console.error('Erro ao salvar no localStorage:', storageError);
+                    saveModal.style.display = 'none';
+                    alert('Erro ao salvar localmente: ' + storageError.message);
+                }
+            }
+
+            async function saveToServer() {
+                loadingModal.style.display = 'flex';
+                
+                try {
+                    const user = JSON.parse(localStorage.getItem('currentUser'));
+                    if (!user || !user.id) {
+                        throw new Error('Usuário não autenticado');
+                    }
+
+                    // Get JWT token from localStorage
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        throw new Error('Token de autenticação não encontrado');
+                    }
+
+                    // Função para contar cartas corrigida
+                    const countCards = (cards) => {
+                        if (!cards || !Array.isArray(cards)) return [];
+                        
+                        const counts = {};
+                        cards.forEach(card => {
+                            if (card && card.id) {
+                                counts[card.id] = (counts[card.id] || 0) + 1;
+                            }
+                        });
+                        
+                        return Object.entries(counts).map(([cardId, quantity]) => ({
+                            card_id: parseInt(cardId),
+                            quantity: quantity
+                        }));
+                    };
+
+                    // Verificar se há cartas antes de processar
+                    const mainCards = countCards(currentDeck.main);
+                    const extraCards = countCards(currentDeck.extra);
+                    const sideCards = countCards(currentDeck.side);
+
+                    // Preparar dados para enviar
+                    const deckData = {
+                        name: currentDeck.name,
+                        description: currentDeck.description || '',
+                        user_id: user.id, // Adicionar user_id
+                        deck_cards: []
+                    };
+
+                    // Adicionar cartas do deck principal
+                    mainCards.forEach(card => {
+                        deckData.deck_cards.push({
+                            card_id: card.card_id,
+                            quantity: card.quantity,
+                            deck_type: 'main'
+                        });
+                    });
+
+                    // Adicionar cartas do deck extra
+                    extraCards.forEach(card => {
+                        deckData.deck_cards.push({
+                            card_id: card.card_id,
+                            quantity: card.quantity,
+                            deck_type: 'extra'
+                        });
+                    });
+
+                    // Adicionar cartas do side deck
+                    sideCards.forEach(card => {
+                        // Adicionar cartas do side deck
+                        console.log('Adicionando cartas do side deck:', card);
+                        deckData.deck_cards.push({
+                            card_id: card.card_id,
+                            quantity: card.quantity,
+                            deck_type: 'side'
+                        });
+                    });
+
+                    console.log('Enviando deck para servidor:', deckData);
+                    console.log('token:', token);
+
+                    if (!token) {
+                        throw new Error('Token de autenticação nao encontrado');
+                        
+                    }
+
                     const response = await fetch('http://localhost:3000/decks/save', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify(currentDeck)
+                        body: JSON.stringify(deckData)
                     });
 
                     if (!response.ok) {
-                        throw new Error('Erro ao salvar o deck no servidor');
+                        const errorText = await response.text();
+                        console.error('Erro do servidor:', errorText);
+                        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+                        
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            errorMessage = errorData.message || errorMessage;
+                        } catch (e) {
+                            // Se não for JSON, usar o texto como está
+                        }
+                        
+                        throw new Error(errorMessage);
                     }
 
                     const result = await response.json();
+                    console.log('Resposta do servidor:', result);
+                    
+                    // Atualizar o ID do deck se for um novo deck
+                    if (result.deck && result.deck.id) {
+                        currentDeck.id = result.deck.id;
+                        
+                        // Atualizar no localStorage também
+                        const userDecks = JSON.parse(localStorage.getItem(`decks_${user.id}`)) || [];
+                        const deckIndex = userDecks.findIndex(d => d.id === currentDeck.id);
+                        
+                        if (deckIndex !== -1) {
+                            userDecks[deckIndex] = currentDeck;
+                        } else {
+                            userDecks.push(currentDeck);
+                        }
+                        
+                        localStorage.setItem(`decks_${user.id}`, JSON.stringify(userDecks));
+                    }
+
+                    loadingModal.style.display = 'none';
                     alert('Deck salvo com sucesso no servidor!');
+                    
                 } catch (error) {
                     console.error('Erro ao salvar o deck:', error);
-                    alert('Erro ao salvar o deck no servidor');
+                    loadingModal.style.display = 'none';
+                    alert('Erro ao salvar o deck: ' + error.message);
                 }
             }
 
@@ -1214,6 +1391,13 @@
                     saveModal.style.display = 'none';
                 }
             });
+            
+            loadingModal.addEventListener('click', (e) => {
+                if (e.target === loadingModal) {
+                    loadingModal.style.display = 'none';
+                }
+            });
+
             // Auto-search for demo
             setTimeout(() => {
                 if (cardSearch.value === '') {

@@ -1,15 +1,20 @@
+const { response } = require('express');
 const deckService = require('../services/deckService');
+const sessaoService = require('../services/sessaoService');
 
 const deckController = {
   async createDeck(req, res) {
     try {
-      const deck = await deckService.saveDeck(req.body, req.userId);
+
+      const deckCard = req.body.deck_cards;
+      for(let i=0;i<deckCard.length;i++){
+
+        await deckService.saveDeckCard(deckCard[i],deckCard[i].quantity,deckCard[i].deckType);
+        console.log(deckCard[i]);
+      }
+
       
-      res.status(201).json({
-        success: true,
-        message: 'Deck criado com sucesso',
-        data: { deck }
-      });
+
 
     } catch (error) {
       res.status(500).json({
