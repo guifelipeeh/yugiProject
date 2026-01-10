@@ -46,12 +46,35 @@ const deckController = {
   async getUserDecks(req, res) {
     try {
       console.log("entrou na controller de decks",req);
-      const result = await deckService.getUserDecks(req.id);
+      const token = req.headers['authorization'];
+      console.log("token no controller:",token);
+      const sessao =  await sessaoService.obterSessaoPorToken(token.split(' ')[1].trim());
+      if (!sessao) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token de acesso inválido'
+        });        
+      }
+
+      const userid = sessao.userId;
+
+      console.log(userid);
+
+     
+
+      const result = await deckService.getUserDecks(userid);
       
+      if(!result){
+        return res.status(404).json({
+          success: false,
+          message: 'Nenhum deck encontrado para o usuário'
+        });         
+      }
+
       res.json({
         success: true,
-        data: result
-      });
+        data: result  
+      })
 
     } catch (error) {
       res.status(500).json({

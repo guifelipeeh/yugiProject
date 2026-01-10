@@ -996,6 +996,7 @@
             
             // Check if user is logged in (from localStorage)
             function checkAuthStatus() {
+                alert('Checking auth status');
                 const user = localStorage.getItem('currentUser');
                 if (user) {
                     currentUser = JSON.parse(user);
@@ -1006,28 +1007,33 @@
             // Update UI for logged in user
             async function updateUIForLoggedInUser() {
                 currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                token = localStorage.getItem('token');
                 userInfo.style.display = 'flex';
                 authButtons.style.display = 'none';
                 userName.textContent = currentUser.username || currentUser.name;
                 userAvatar.textContent = (currentUser.username || currentUser.name).charAt(0).toUpperCase();
                 userAvatar.addEventListener('click', function() {
                     
-                    window.location.href = 'profile.html';
+                window.location.href = 'profile.html';
                 })
                 // Load user's decks
+
+              console.log(token);
 
                 const decks = await fetch('http://localhost:3000/decks/my-decks',
                 {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ userId: currentUser.id })
+               
 
 
                 })
                 .then(response => response.json());
 
+               
 
                 loadUserDecks();
             }
