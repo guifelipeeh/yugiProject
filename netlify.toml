@@ -1,0 +1,12 @@
+[build]
+  publish = "FrontEnd"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Páginas antigas continuam funcionando
+[[redirects]]
+  from = "/pages/Home.html"
+  to = "/"
+  status = 301
